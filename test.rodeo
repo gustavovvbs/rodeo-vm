@@ -1,0 +1,36 @@
+pattern(CALM);
+speed(0);
+brake(1);
+
+read(rider) -> r;
+if (r == 1) {
+    brake(0);
+    s = 0;
+
+    while (s < 80) {
+        s = s + 5;
+        speed(s);
+        torque(70);
+        yaw(3);
+        wait(200);
+
+        read(tilt) -> t;
+        if (t > 25) {
+            brake(1);
+            speed(0);
+            wait(300);
+            brake(0);
+        }
+
+        read(emergency) -> em;
+        if (em == 1) {
+            s = 80;
+            speed(0);
+            brake(1);
+        }
+    }
+}
+
+speed(0);
+brake(1);
+

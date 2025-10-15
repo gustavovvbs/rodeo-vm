@@ -1,8 +1,70 @@
 # rodeo-vm
 vm de um touro mecanico aeeeepaaa
 
+### Arquivos
 
-EBNF:
+- `lexer.l` - Analise lexica (Flex)
+- `parser.y` - Analise sintatica (Bison)
+- `Makefile` - Makefile pra automatizar
+- `test.rodeo` - arquivo simples de teste da linguagem
+- `USAGE.md` - Documentação completa de uso
+
+### Como Usar
+
+```bash
+make
+```
+
+### Leitura de Sensores
+
+```
+read(sensor) -> variavel;
+```
+
+Sensores disponíveis:
+- `rider` - Sensor de presença do piloto
+- `tilt` - Sensor de inclinação
+- `rpm` - Sensor de rotações por minuto
+- `emergency` - Botão de emergência
+- `time_ms` - Tempo em milissegundos
+
+### Estruturas de Controle
+
+**Condicional:**
+```
+if (condicao) {
+    // comandos
+}
+
+if (condicao) {
+    // comandos
+} else {
+    // comandos
+}
+```
+
+**Laço:**
+```
+while (condicao) {
+    // comandos
+}
+```
+
+### Operadores
+
+**Aritméticos:** `+`, `-`, `*`, `/`
+
+**Relacionais:** `==`, `!=`, `>`, `<`, `>=`, `<=`
+
+**Atribuição:** `=`
+
+### Comentários
+
+```
+// Comentário de linha única
+```
+
+## EBNF:
 
 ```
 Program = { Statement } ;
