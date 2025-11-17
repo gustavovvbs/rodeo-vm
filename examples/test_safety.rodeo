@@ -1,0 +1,33 @@
+
+pattern(SWIRL);
+brake(0);
+speed(40);
+
+counter = 0;
+while (counter < 10) {
+    speed(counter * 10);
+    torque(70);
+    yaw(5);
+    wait(200);
+    
+    read(tilt) -> t;
+    if (t > 25) {
+        brake(1);
+        speed(0);
+        wait(500);
+        brake(0);
+    }
+    
+    read(emergency) -> em;
+    if (em == 1) {
+        speed(0);
+        brake(1);
+        counter = 100;
+    }
+    
+    counter = counter + 1;
+}
+
+speed(0);
+brake(1);
+

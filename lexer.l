@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include "ast.h"
 #include "parser.tab.h"
 
 int line_num = 1;

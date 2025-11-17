@@ -1,161 +1,71 @@
-# rodeo-vm
-vm de um touro mecanico aeeeepaaa
+# Rodeo VM - Mechanical Bull Control Language
 
-### Arquivos
+Uma linguagem de domínio específico (DSL) para controle de touros mecânicos, implementada com Flex, Bison e uma VM personalizada.
 
-- `lexer.l` - Analise lexica (Flex)
-- `parser.y` - Analise sintatica (Bison)
-- `Makefile` - Makefile pra automatizar
-- `test.rodeo` - arquivo simples de teste da linguagem
-- `USAGE.md` - Documentação completa de uso
+## Visão Geral
 
-### Como Usar
+Rodeo VM é uma linguagem de programação projetada especificamente para controlar sistemas de touros mecânicos. A linguagem oferece comandos de alto nível para controle de movimento, leitura de sensores e implementação de lógicas de segurança.
+
+## Comandos Principais
+
+| Comando | Descrição | Exemplo |
+|---------|-----------|---------|
+| `speed(n)` | Define velocidade (0-100%) | `speed(75);` |
+| `torque(n)` | Define torque (0-100%) | `torque(80);` |
+| `yaw(n)` | Define rotação (graus/passo) | `yaw(10);` |
+| `brake(n)` | Liga/desliga freio (0/1) | `brake(1);` |
+| `wait(n)` | Aguarda n milissegundos | `wait(1000);` |
+| `pattern(P)` | Define padrão de movimento | `pattern(CALM);` |
+
+## Exemplos Disponíveis
+
+1. **test_basic.rodeo** - Comandos básicos
+2. **test_arithmetic.rodeo** - Operações matemáticas
+3. **test_if_else.rodeo** - Condicionais
+4. **test_while.rodeo** - Loops
+5. **test_sensors.rodeo** - Leitura de sensores
+6. **test_patterns.rodeo** - Padrões de movimento
+7. **test_safety.rodeo** - Sistema de segurança
+
+## Comandos Make
 
 ```bash
-make
+make          # Compila o projeto
+make clean    # Remove arquivos gerados
+make test     # Executa test.rodeo
 ```
 
-### Leitura de Sensores
+## Estrutura do Projeto
 
 ```
-read(sensor) -> variavel;
+rodeo-vm/
+│
+├── Implementação
+│   ├── lexer.l                ✓ Analisador léxico (Flex)
+│   ├── parser.y               ✓ Analisador sintático (Bison)
+│   ├── ast.h / ast.c          ✓ Abstract Syntax Tree
+│   ├── vm.h / vm.c            ✓ Virtual Machine
+│   └── Makefile               ✓ Automação de build
+│
+├──  Testes
+│   ├── test.rodeo             ✓ Teste principal
+│   ├── run_all_tests.sh       ✓ Suite de testes
+│   └── examples/              ✓ 7 exemplos demonstrativos
+│       ├── test_basic.rodeo
+│       ├── test_arithmetic.rodeo
+│       ├── test_if_else.rodeo
+│       ├── test_while.rodeo
+│       ├── test_sensors.rodeo
+│       ├── test_patterns.rodeo
+│       └── test_safety.rodeo
+│
+└── 🔨 Build Artifacts
+    └── rodeo-vm               ✓ Executável compilado
 ```
 
-Sensores disponíveis:
-- `rider` - Sensor de presença do piloto
-- `tilt` - Sensor de inclinação
-- `rpm` - Sensor de rotações por minuto
-- `emergency` - Botão de emergência
-- `time_ms` - Tempo em milissegundos
 
-### Estruturas de Controle
+rodar os testes:
 
-**Condicional:**
-```
-if (condicao) {
-    // comandos
-}
-
-if (condicao) {
-    // comandos
-} else {
-    // comandos
-}
-```
-
-**Laço:**
-```
-while (condicao) {
-    // comandos
-}
-```
-
-### Operadores
-
-**Aritméticos:** `+`, `-`, `*`, `/`
-
-**Relacionais:** `==`, `!=`, `>`, `<`, `>=`, `<=`
-
-**Atribuição:** `=`
-
-### Comentários
-
-```
-// Comentário de linha única
-```
-
-## EBNF:
-
-```
-Program = { Statement } ;
-
-
-Statement = Assignment | IfStmt | WhileStmt | Command ;
-
-
-Assignment = Identifier "=" Expression ";" ;
-
-
-IfStmt = "if" "(" Condition ")" "{" { Statement } "}"
-[ "else" "{" { Statement } "}" ] ;
-
-
-WhileStmt = "while" "(" Condition ")" "{" { Statement } "}" ;
-
-
-Command = SpeedCmd ";" | TorqueCmd ";" | YawCmd ";" | BrakeCmd ";"
-| WaitCmd ";" | PatternCmd ";" | SensorCmd ";" ;
-
-
-SpeedCmd = "speed" "(" Expression ")" ; (* 0..100 *)
-TorqueCmd = "torque" "(" Expression ")" ; (* 0..100 *)
-YawCmd = "yaw" "(" Expression ")" ; (* graus por step; + eh sentido horario *)
-BrakeCmd = "brake" "(" Expression ")" ; (* 0 off, 1 on *)
-WaitCmd = "wait" "(" Expression ")" ; (* ms *)
-PatternCmd = "pattern" "(" Mode ")" ; (* preset de movimento *)
-
-
-SensorCmd = "read" "(" Sensor ")" "->" Identifier ; (* assign sensor value to var *)
-
-
-Expression = Term { ("+" | "-" | "*" | "/") Term } ;
-Term = Number | Identifier | "(" Expression ")" ;
-
-
-Condition = Expression RelOp Expression ;
-RelOp = "==" | "!=" | ">" | "<" | ">=" | "<=" ;
-
-
-Mode = "CALM" | "SWIRL" | "AGGRESSIVE" ;
-Sensor = "rider" | "tilt" | "rpm" | "emergency" | "time_ms" ;
-
-Identifier = Letter { Letter | Digit | "_" } ;
-Number = Digit { Digit } ;
-Letter = "a" | ... | "z" | "A" | ... | "Z" ;
-Digit = "0" | ... | "9" ;
-```
-
-exemplo nessa EBNF:
-
-```
-pattern(CALM);
-speed(0);
-brake(1);
-
-
-read(rider) -> r;
-if (r == 1) {
-brake(0);
-s = 0;
-
-
-while (s < 80) {
-s = s + 5;
-speed(s);
-torque(70);
-yaw(3);
-wait(200);
-
-
-read(tilt) -> tilt;
-if (tilt > 25) {
-brake(1);
-speed(0);
-wait(300);
-brake(0);
-}
-
-
-read(emergency) -> em;
-if (em == 1) {
-  s = 80; // force loop exit path
-  speed(0);
-  brake(1);
-    }
-  }
-}
-
-
-speed(0);
-brake(1);
+```bash
+bash run_all_tests.sh
 ```

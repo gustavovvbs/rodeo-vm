@@ -1,0 +1,10 @@
+
+read(rider) -> has_rider;
+read(tilt) -> current_tilt;
+read(rpm) -> current_rpm;
+read(emergency) -> emergency_status;
+read(time_ms) -> elapsed_time;
+
+speed(has_rider);
+brake(emergency_status);
+

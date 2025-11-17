@@ -1,0 +1,10 @@
+// Demonstracao de comandos
+
+pattern(CALM);
+speed(50);
+torque(60);
+yaw(5);
+wait(1000);
+brake(1);
+speed(0);
+

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ast.h"
+#include "vm.h"
 
 extern int yylex();
 extern int yyparse();
@@ -9,11 +11,21 @@ extern FILE *yyin;
 extern int line_num;
 
 void yyerror(const char *s);
+
+ASTNode *root_program = NULL;
 %}
 
 %union {
     int number;
     char *string;
+    Expression *expr;
+    Condition *cond;
+    ASTNode *stmt;
+    ASTNode *stmt_list;
+    BinaryOp binop;
+    RelOp relop;
+    Pattern pattern;
+    SensorType sensor;
 }
 
 %token IF ELSE WHILE
@@ -26,168 +38,194 @@ void yyerror(const char *s);
 %token <string> IDENTIFIER
 %token <number> NUMBER
 
+%type <expr> expression term
+%type <cond> condition
+%type <stmt> statement assignment if_stmt while_stmt command
+%type <stmt> speed_cmd torque_cmd yaw_cmd brake_cmd wait_cmd pattern_cmd sensor_cmd
+%type <stmt_list> statement_list program
+%type <relop> relop
+%type <pattern> mode
+%type <sensor> sensor
+
 %left PLUS MINUS
 %left MULT DIV
 
 %%
 
 program:
-    /* empty */
-    | statement_list
+    /* empty */ {
+        root_program = NULL;
+        $$ = NULL;
+    }
+    | statement_list {
+        root_program = $1;
+        $$ = $1;
+    }
     ;
 
 statement_list:
-    statement
-    | statement_list statement
+    statement {
+        $$ = $1;
+    }
+    | statement_list statement {
+        if ($1) {
+            append_statement(&$1, $2);
+            $$ = $1;
+        } else {
+            $$ = $2;
+        }
+    }
     ;
 
 statement:
-    assignment
-    | if_stmt
-    | while_stmt
-    | command
+    assignment { $$ = $1; }
+    | if_stmt { $$ = $1; }
+    | while_stmt { $$ = $1; }
+    | command { $$ = $1; }
     ;
 
 assignment:
     IDENTIFIER ASSIGN expression SEMICOLON {
-        printf("Assignment: %s = <expression>\n", $1);
+        $$ = create_assignment($1, $3);
         free($1);
     }
     ;
 
 if_stmt:
     IF LPAREN condition RPAREN LBRACE statement_list RBRACE {
-        printf("If statement\n");
+        $$ = create_if_stmt($3, $6, NULL);
     }
     | IF LPAREN condition RPAREN LBRACE statement_list RBRACE ELSE LBRACE statement_list RBRACE {
-        printf("If-Else statement\n");
+        $$ = create_if_stmt($3, $6, $10);
     }
     | IF LPAREN condition RPAREN LBRACE RBRACE {
-        printf("If statement (empty body)\n");
+        $$ = create_if_stmt($3, NULL, NULL);
     }
     | IF LPAREN condition RPAREN LBRACE RBRACE ELSE LBRACE statement_list RBRACE {
-        printf("If-Else statement (empty if body)\n");
+        $$ = create_if_stmt($3, NULL, $9);
     }
     ;
 
 while_stmt:
     WHILE LPAREN condition RPAREN LBRACE statement_list RBRACE {
-        printf("While statement\n");
+        $$ = create_while_stmt($3, $6);
     }
     | WHILE LPAREN condition RPAREN LBRACE RBRACE {
-        printf("While statement (empty body)\n");
+        $$ = create_while_stmt($3, NULL);
     }
     ;
 
 command:
-    speed_cmd SEMICOLON
-    | torque_cmd SEMICOLON
-    | yaw_cmd SEMICOLON
-    | brake_cmd SEMICOLON
-    | wait_cmd SEMICOLON
-    | pattern_cmd SEMICOLON
-    | sensor_cmd
+    speed_cmd SEMICOLON { $$ = $1; }
+    | torque_cmd SEMICOLON { $$ = $1; }
+    | yaw_cmd SEMICOLON { $$ = $1; }
+    | brake_cmd SEMICOLON { $$ = $1; }
+    | wait_cmd SEMICOLON { $$ = $1; }
+    | pattern_cmd SEMICOLON { $$ = $1; }
+    | sensor_cmd { $$ = $1; }
     ;
 
 speed_cmd:
     SPEED LPAREN expression RPAREN {
-        printf("Speed command\n");
+        $$ = create_speed_cmd($3);
     }
     ;
 
 torque_cmd:
     TORQUE LPAREN expression RPAREN {
-        printf("Torque command\n");
+        $$ = create_torque_cmd($3);
     }
     ;
 
 yaw_cmd:
     YAW LPAREN expression RPAREN {
-        printf("Yaw command\n");
+        $$ = create_yaw_cmd($3);
     }
     ;
 
 brake_cmd:
     BRAKE LPAREN expression RPAREN {
-        printf("Brake command\n");
+        $$ = create_brake_cmd($3);
     }
     ;
 
 wait_cmd:
     WAIT LPAREN expression RPAREN {
-        printf("Wait command\n");
+        $$ = create_wait_cmd($3);
     }
     ;
 
 pattern_cmd:
     PATTERN LPAREN mode RPAREN {
-        printf("Pattern command\n");
+        $$ = create_pattern_cmd($3);
     }
     ;
 
 sensor_cmd:
     READ LPAREN sensor RPAREN ARROW IDENTIFIER SEMICOLON {
-        printf("Sensor read: -> %s\n", $6);
+        $$ = create_sensor_read($3, $6);
         free($6);
     }
     ;
 
 expression:
-    term
+    term {
+        $$ = $1;
+    }
     | expression PLUS term {
-        printf("Expression: + operation\n");
+        $$ = create_binary_expr(OP_ADD, $1, $3);
     }
     | expression MINUS term {
-        printf("Expression: - operation\n");
+        $$ = create_binary_expr(OP_SUB, $1, $3);
     }
     | expression MULT term {
-        printf("Expression: * operation\n");
+        $$ = create_binary_expr(OP_MUL, $1, $3);
     }
     | expression DIV term {
-        printf("Expression: / operation\n");
+        $$ = create_binary_expr(OP_DIV, $1, $3);
     }
     ;
 
 term:
     NUMBER {
-        printf("Term: number %d\n", $1);
+        $$ = create_number_expr($1);
     }
     | IDENTIFIER {
-        printf("Term: identifier %s\n", $1);
+        $$ = create_identifier_expr($1);
         free($1);
     }
     | LPAREN expression RPAREN {
-        printf("Term: parenthesized expression\n");
+        $$ = $2;
     }
     ;
 
 condition:
     expression relop expression {
-        printf("Condition\n");
+        $$ = create_condition($2, $1, $3);
     }
     ;
 
 relop:
-    EQ { printf("RelOp: ==\n"); }
-    | NE { printf("RelOp: !=\n"); }
-    | GT { printf("RelOp: >\n"); }
-    | LT { printf("RelOp: <\n"); }
-    | GE { printf("RelOp: >=\n"); }
-    | LE { printf("RelOp: <=\n"); }
+    EQ { $$ = REL_EQ; }
+    | NE { $$ = REL_NE; }
+    | GT { $$ = REL_GT; }
+    | LT { $$ = REL_LT; }
+    | GE { $$ = REL_GE; }
+    | LE { $$ = REL_LE; }
     ;
 
 mode:
-    CALM { printf("Mode: CALM\n"); }
-    | SWIRL { printf("Mode: SWIRL\n"); }
-    | AGGRESSIVE { printf("Mode: AGGRESSIVE\n"); }
+    CALM { $$ = PATTERN_CALM; }
+    | SWIRL { $$ = PATTERN_SWIRL; }
+    | AGGRESSIVE { $$ = PATTERN_AGGRESSIVE; }
     ;
 
 sensor:
-    RIDER { printf("Sensor: rider\n"); }
-    | TILT { printf("Sensor: tilt\n"); }
-    | RPM { printf("Sensor: rpm\n"); }
-    | EMERGENCY { printf("Sensor: emergency\n"); }
-    | TIME_MS { printf("Sensor: time_ms\n"); }
+    RIDER { $$ = SENSOR_RIDER; }
+    | TILT { $$ = SENSOR_TILT; }
+    | RPM { $$ = SENSOR_RPM; }
+    | EMERGENCY { $$ = SENSOR_EMERGENCY; }
+    | TIME_MS { $$ = SENSOR_TIME_MS; }
     ;
 
 %%
@@ -206,15 +244,28 @@ int main(int argc, char **argv) {
         yyin = file;
     }
 
-    printf("=== Rodeo VM - Lexical and Syntactic Analysis ===\n\n");
+    printf("=== Rodeo VM - Lexical and Syntactic Analysis ===\n");
     
     if (yyparse() == 0) {
-        printf("\n=== Parsing completed successfully! ===\n");
+        printf("✓ Parsing completed successfully!\n");
+        
+        if (root_program) {
+            // Initialize and run VM
+            VMContext vm;
+            vm_init(&vm);
+            vm_execute(&vm, root_program);
+            vm_print_state(&vm);
+            
+            // Cleanup
+            vm_cleanup(&vm);
+            free_ast(root_program);
+        } else {
+            printf("Warning: Empty program\n");
+        }
     } else {
-        printf("\n=== Parsing failed with errors ===\n");
+        printf("✗ Parsing failed with errors\n");
         return 1;
     }
 
     return 0;
 }
-

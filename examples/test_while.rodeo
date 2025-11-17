@@ -1,0 +1,11 @@
+counter = 0;
+while (counter < 5) {
+    speed(counter * 20);
+    torque(counter * 15);
+    wait(100);
+    counter = counter + 1;
+}
+
+speed(0);
+brake(1);
+

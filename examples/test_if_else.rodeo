@@ -1,0 +1,26 @@
+read(rider) -> r;
+
+if (r == 1) {
+    speed(75);
+    pattern(AGGRESSIVE);
+}
+
+if (r != 1) {
+    speed(0);
+    brake(1);
+}
+
+age = 18;
+if (age >= 18) {
+    pattern(AGGRESSIVE);
+} else {
+    pattern(CALM);
+}
+
+level = 5;
+if (level < 10) {
+    torque(50);
+} else {
+    torque(90);
+}
+
